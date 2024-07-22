@@ -40,14 +40,10 @@
     <script>
     $(document).ready(function() {
         var nextPage = 2;
-        var username = '';
 
         function loadFollowers(url, append = false) {
             var token = $('input[name="_token"]').val();
             var username = $('#username').val();
-
-            console.log(username);
-            console.log(nextPage);
 
             $.ajax({
                 url: url,
@@ -63,7 +59,6 @@
                 success: function(response) {
                     var followersList = $('#followers-list');
 
-                    console.log(response);
                     if (!append) {
                         followersList.empty(); // Clear the previous list if not appending
                     }
