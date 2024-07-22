@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -12,6 +13,10 @@ class GitController extends Controller
         return view('search-user');
     }
     // Get GitHub index user's
+
+    /**
+     * @throws ConnectionException
+     */
     public function searchUser(Request $request) {
         $username = $request->input('username');
 
@@ -35,12 +40,24 @@ class GitController extends Controller
 
         $data = $response->json();
 
-
         if ($data['total_count'] == 0) {
-            return redirect()->route('search-user.form')->with('error', 'User not found');
+            return response()->json(['error' => 'Username not found'], 404);
         }
-//        dd($data['total_count']);
 
-        return view('search-user', ['user' => $data['items'][0]]);
+        $followersUrl = 'https://api.github.com/users/' . $username . ' /followers';
+
+        $followersResponse = Http::withHeaders([
+            'User-Agent' => 'Laravel App',
+        ])->get($followersUrl);
+
+        if ($followersResponse->header('Link') && count($followersResponse->json()) > 0) {
+            $allData = array_merge($data['items'][0], [ 'followers' => $followersResponse->json(), 'follower_count' => count($followersResponse->json()) ]);
+
+            return response()->json($allData);
+        } else {
+            return response()->json($data['items'][0]);
+        }
+
+//        $allData = array_merge($data['items'][0], $followersResponse->headers()['Link']);
     }
 }
