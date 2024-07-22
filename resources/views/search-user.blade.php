@@ -28,33 +28,99 @@
                 <ul class="list-group">
                     <li class="list-group-item"><strong>GitHub Handle:</strong> <span id="user-login"></span></li>
                     <li class="list-group-item"><strong>Follower Count:</strong> <span id="user-follower-count"></span></li>
+                    <li class="list-group-item" style="display: none">Next Page<span id="user-follower-next-page"></span></li>
                     <li class="list-group-item"><strong>Followers:</strong>
                         <ul id="followers-list" class="list-group">
                         </ul>
+                        <button id="load-more" class="btn btn-secondary mt-3" style="display: none;">Load More</button>
                     </li>
                 </ul>
             </div>
         </div>
     <script>
     $(document).ready(function() {
+        var nextPage = 2;
+        var username = '';
+
+        function loadFollowers(url, append = false) {
+            var token = $('input[name="_token"]').val();
+            var username = $('#username').val();
+
+            console.log(username);
+            console.log(nextPage);
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                // headers: {
+                //     'X-Custom-Header': 'YourCustomHeaderValue'
+                // },
+                data: {
+                    _token: token,
+                    username: username,
+                    nextPage: nextPage
+                },
+                success: function(response) {
+                    var followersList = $('#followers-list');
+
+                    console.log(response);
+                    if (!append) {
+                        followersList.empty(); // Clear the previous list if not appending
+                    }
+                    response.followers_list.forEach(function(follower) {
+                        followersList.append(
+                            '<li class="list-group-item">' +
+                                '<img src="' + follower.avatar_url + '" alt="' + follower.login + '" style="width: 30px; height: 30px; margin-right: 10px; border-radius: 50%;">' +
+                                follower.login +
+                            '</li>'
+                        );
+                    });
+                    // Update nextPage if provided
+                    if (response.next_page) {
+                        nextPage = response.next_page;
+                        $('#load-more').show();
+                    } else {
+                        $('#load-more').hide();
+                    }
+                },
+                error: function(xhr) {
+                    var errorMessage = xhr.responseJSON.error;
+                    $('#alert-placeholder').html('<div class="alert alert-danger">' + errorMessage + '</div>');
+                }
+            });
+        }
+
         $('#search-form').on('submit', function(e) {
             e.preventDefault();
 
+            // Reset data on new search
+            $('#alert-placeholder').html('');
+            $('#user-details').hide();
+            $('#followers-list').empty();
+            $('#load-more').hide();
+            $('#user-follower-count').empty();
+            $('#user-login').empty();
+
             var username = $('#username').val();
             var token = $('input[name="_token"]').val();
+            var nextPage = 2;
 
             $.ajax({
+                cache: false,
                 url: "{{ route('search-user.submit') }}",
                 type: "POST",
                 data: {
                     _token: token,
-                    username: username
+                    username: username,
+                    nextPage: nextPage
                 },
                 success: function(response) {
                     $('#alert-placeholder').html('');
                     $('#user-details').show();
                     $('#user-login').text(response.login);
                     $('#user-follower-count').text(response.follower_count);
+                    $('#user-follower-next-page').text(response.next_page);
+
                     if (response.follower_count > 0) {
                         var followersList = $('#followers-list');
                         followersList.empty();
@@ -67,7 +133,9 @@
                             );
                         });
                     }
-                    console.log(response);
+                    if (response.next_page > 1) {
+                        $('#load-more').show();
+                    }
                 },
                 error: function(xhr) {
                     $('#user-details').hide();
@@ -75,6 +143,10 @@
                     $('#alert-placeholder').html('<div class="alert alert-danger">' + errorMessage + '</div>');
                 }
             });
+        });
+
+        $('#load-more').on('click', function() {
+            loadFollowers("{{ route('load-more-followers') }}", true);
         });
     });
     </script>

@@ -10,3 +10,4 @@ Route::get('/', function () {
 //Route::get('/search-user', [GitController::class, 'searchUser']);
 Route::get('/search-user', [GitController::class, 'showSearchForm'])->name('search-user.form');
 Route::post('/search-user', [GitController::class, 'searchUser'])->name('search-user.submit');
+Route::post('/load-more-followers', [GitController::class, 'loadMoreFollowers'])->name('load-more-followers');
